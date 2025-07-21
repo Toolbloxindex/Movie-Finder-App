@@ -7,26 +7,41 @@ import { fetchMovies } from '@/services/api'
 import useFetch from '@/services/useFetch'
 import { icons } from '@/constants/icons'
 import SearchBar from '@/components/SearchBar'
+import { updateSearchCount } from '@/services/appwrite'
 
 const Search = () => {
     const [searchQuery, setSearchQuery] = useState('')
+   
 
-    const { data: movies, loading, error, refetch: loadMovies, reset} = useFetch(() => fetchMovies( { 
-      query: searchQuery}), false)
+    const fetchResult = useFetch(() => fetchMovies({ query: searchQuery }), false)
+
+    const movies = fetchResult?.data ?? []
+    const loading = fetchResult?.loading ?? false
+    const error = fetchResult?.error ?? null
+    const loadMovies = fetchResult?.refetch ?? (() => {})
+    const reset = fetchResult?.reset ?? (() => {})
 
     //DEBOUNCE
     
-    useEffect(()=> {
-      const timeoutID  = setTimeout(async () => {
-      if  (searchQuery.trim()) {
-        await loadMovies();
-      }
-      else {
-        reset()
-      }
-      }, 500)
-      return () => clearTimeout(timeoutID)
-    }, [searchQuery])
+useEffect(() => {
+  const id = setTimeout(async() => {
+    const trimmed = searchQuery.trim();
+    if (trimmed) {
+      await loadMovies();
+    } else {
+      reset();
+    }
+  }, 800);
+
+  return () => clearTimeout(id);
+}, [searchQuery]);
+
+useEffect(() => {
+  if (movies?.length >0 && movies?.[0]) {
+    updateSearchCount(searchQuery, movies[0]);
+  }
+}, [movies]);
+
 
 
   return (
